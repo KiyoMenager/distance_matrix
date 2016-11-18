@@ -30,10 +30,12 @@ defmodule DistanceMatrix do
   ## Examples
 
       iex> alias DistanceMatrix.Location
-      iex> route = [Location.new(1, 2), Location.new(2, 4), Location.new(3, 2)]
-      iex> DistanceMatrix.create(route)
+      iex>
+      iex> DistanceMatrix.create([Location.new(1, 2), Location.new(2, 4), Location.new(3, 2)])
       %TupleMatrix{tuple: {0, 3, 2, 3, 0, 3, 2, 3, 0}, nb_cols: 3, nb_rows: 3}
-      
+      iex>
+      iex> DistanceMatrix.create([])
+      %TupleMatrix{tuple: {}, nb_cols: 0, nb_rows: 0}
   """
   @spec create(route) :: t
 
