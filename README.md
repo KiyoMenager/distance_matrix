@@ -12,12 +12,31 @@ Because the distance_matrix need to calculate the distance between each pair of
 elements, elements have to implement the [Localizable](https://github.com/KiyoMenager/distance_matrix/blob/master/lib/localizable.ex) protocol.
 See [Location](https://github.com/KiyoMenager/distance_matrix/blob/master/lib/location.ex) for example.
 
-  ```elixir
-  [Location.new(1, 2), Location.new(2, 4), Location.new(3, 2)]
-  |> DistanceMatrix.create
-  |> DistanceMatrix.get(0, 2)
-  #=> 3
-  ```
+## Usage
+
+```elixir
+[Location.new(1, 2), Location.new(2, 4), Location.new(3, 2)]
+|> DistanceMatrix.new
+|> DistanceMatrix.get(0, 2)
+#=> 3
+```
+
+Note you can use convenient callback stored in the DistanceMatrix struct while
+created.
+
+```elixir
+route = [Location.new(1, 2), Location.new(2, 4), Location.new(3, 2)]
+distance_matrix = DistanceMatrix.new(route)
+distance_matrix.length_callback.([1, 2, 0], :cyclic)
+#=> 8
+distance_matrix.length_callback.([1, 2, 0], :acyclic)
+#=> 5
+```
+
+## Localizable
+
+The localizable protocol should be implemented by any module meant to be used by
+the distance_matrix api. See [Localizable](https://github.com/KiyoMenager/distance_matrix/blob/master/lib/localizable.ex) protocol.
 
 ## Installation
 
