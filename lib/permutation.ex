@@ -26,10 +26,10 @@ defmodule Permutation do
   ## Examples
 
       iex> Permutation.edge_map([1, 2, 3], &(&1 + &2))
-      [3, 5, 4]
+      [3, 5]
 
       iex> Permutation.edge_map([1, 2, 3], &(&1 * &2))
-      [2, 6, 3]
+      [2, 6]
 
   """
   @spec edge_map(t, (element, element -> any)) :: list
@@ -45,22 +45,44 @@ defmodule Permutation do
   @doc """
   Invokes fun for each edge in the permutation, passing that element and the
   accumulator as arguments. fun’s return value is stored in the accumulator.
+  An optional tag :cyclic can be passed, then the fun will invoked on the pair
+  Last element, first element.
 
   ## Examples
 
-      iex> Permutation.edge_reduce([1, 2, 3], 0, &(&1 + &2 + &3))
-      12
+      A regular edge reduce:
 
+      iex> Permutation.edge_reduce([1, 2, 3], 0, &(&1 + &2 + &3))
+      8
       iex> Permutation.edge_reduce([1, 2, 3], [], &([&1 + &2 | &3]))
+      [5, 3]
+
+      A cyclic edge reduce:
+
+      iex> Permutation.edge_reduce([1, 2, 3], 0, &(&1 + &2 + &3), :cyclic)
+      12
+      iex> Permutation.edge_reduce([1, 2, 3], [], &([&1 + &2 | &3]), :cyclic)
       [4, 5, 3]
 
   """
   @spec edge_reduce(t, acc, (element, element, acc -> any)) :: list
+  @spec edge_reduce(t, acc, (element, element, acc -> any), :cyclic) :: list
   def edge_reduce(permutation, acc, fun) do
+    do_edge_reduce(permutation, acc, fun)
+  end
+  def edge_reduce(permutation, acc, fun, :cyclic) do
      do_edge_reduce(permutation, nil, acc, fun)
   end
 
-  @spec edge_map(t, (element, element, acc -> any)) :: list
+  # Regular edge reduce.
+  defp do_edge_reduce([],           acc, _), do: acc
+  defp do_edge_reduce([pred|succs], acc, fun) do
+    case succs do
+      []       -> acc
+      [succ|_] -> do_edge_reduce(succs, fun.(pred, succ, acc), fun)
+    end
+  end
+  # Cyclic edge reduce. (applies the given fun to the pair {last, first})
   defp do_edge_reduce([],               _, acc, _), do: acc
   defp do_edge_reduce([pred|succs], first, acc, fun) do
     first = first || pred
@@ -71,25 +93,5 @@ defmodule Permutation do
         do_edge_reduce(succs, first, fun.(pred, succ, acc), fun)
     end
   end
-
-  # def swap([ ], _, _), do: [ ]
-  # def swap(permutation, left_idx, left_idx), do: permutation
-  #
-  # def swap(permutation, left_idx, right_idx) do
-  #   permutation
-  #   |> List.replace_at(left_idx, nth(list, right_idx))
-  #   |> List.replace_at(right_idx, nth(list, left_idx))
-  # end
-  #
-  # def nth(list, idx) when is_number(idx) and idx < 0 do
-  #   throw 'Index must be positive'
-  # end
-  #
-  # def nth(list, idx) when idx > length(list) - 1 do
-  #   throw ' index bigger the list size'
-  # end
-  #
-  # def nth([ element | _ ] , 0), do: element
-  # def nth([ head | tail ], idx), do: nth(tail, idx - 1)
 
 end

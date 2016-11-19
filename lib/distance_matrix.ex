@@ -101,8 +101,10 @@ defmodule DistanceMatrix do
       iex> matrix = DistanceMatrix.create(route)
       iex>
       iex> callback = DistanceMatrix.route_lenght_callback(matrix)
-      iex> callback.([0, 1, 2])
+      iex> callback.([1, 2, 0], :cyclic)
       8
+      iex> callback.([1, 2, 0], :acyclic)
+      5
 
   """
   @spec route_lenght_callback(t) :: distance_callback
@@ -113,6 +115,12 @@ defmodule DistanceMatrix do
         acc + (distance_matrix |> get(idx_pred, idx_succ))
       end
 
-    fn route -> route |> Permutation.edge_reduce(0, reducer) end
+    fn
+      route, :acyclic ->
+        Permutation.edge_reduce(route, 0, reducer)
+      route, :cyclic ->
+        Permutation.edge_reduce(route, 0, reducer, :cyclic)
+    end
   end
+
 end
