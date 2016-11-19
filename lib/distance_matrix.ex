@@ -135,7 +135,7 @@ defmodule DistanceMatrix do
   defp length_callback(matrix) do
     reducer = &(&3 + (matrix |> TupleMatrix.at(&1, &2)))
     fn
-      route, :acyclic -> Permutation.edge_reduce(route, 0, reducer)
+      route, :acyclic  -> Permutation.edge_reduce(route, 0, reducer)
       route, :cyclic  -> Permutation.edge_reduce(route, 0, reducer, :cyclic)
     end
   end

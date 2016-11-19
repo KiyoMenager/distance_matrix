@@ -10,10 +10,18 @@ defmodule Permutation do
   """
 
   @typedoc """
-
+  The type of the current module.
   """
   @type t :: []
+
+  @typedoc """
+  Element contained by the permutation.
+  """
   @type element :: any
+
+  @typedoc """
+  Accumulateur used for reductions.
+  """
   @type acc :: term
 
   @doc """
@@ -28,18 +36,20 @@ defmodule Permutation do
       iex> Permutation.edge_map([1, 2, 3], &(&1 + &2))
       [3, 5]
 
-      iex> Permutation.edge_map([1, 2, 3], &(&1 * &2))
-      [2, 6]
+      iex> Permutation.edge_map([1, 2, 3], &(&1 + &2), :cyclic)
+      [3, 5, 4]
 
   """
   @spec edge_map(t, (element, element -> any)) :: list
+  @spec edge_map(t, (element, element -> any), :cyclic) :: list
 
-  def edge_map([],            _), do: []
-  def edge_map(permutation, fun) do
-    fun = fn (pred, succ, acc) ->
-      [fun.(pred, succ) | acc]
-    end
-    edge_reduce(permutation, [], fun) |> :lists.reverse()
+  def edge_map([],              _), do: []
+  def edge_map(permutation,   fun) do
+    edge_reduce(permutation, [], &([fun.(&1, &2) | &3])) |> :lists.reverse()
+  end
+  def edge_map([],            _, :cyclic), do: []
+  def edge_map(permutation, fun, :cyclic) do
+    edge_reduce(permutation, [], &([fun.(&1, &2) | &3]), :cyclic) |> :lists.reverse()
   end
 
   @doc """
@@ -67,6 +77,7 @@ defmodule Permutation do
   """
   @spec edge_reduce(t, acc, (element, element, acc -> any)) :: list
   @spec edge_reduce(t, acc, (element, element, acc -> any), :cyclic) :: list
+
   def edge_reduce(permutation, acc, fun) do
     do_edge_reduce(permutation, acc, fun)
   end
