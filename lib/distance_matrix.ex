@@ -8,7 +8,6 @@ defmodule DistanceMatrix do
 
   If there are N elements in the set, this matrix will have size N×N.
 
-
   The `DistanceMatrix` struct stores a `length_callback` convenient for
   calculating the length of a given route.
 
@@ -104,7 +103,9 @@ defmodule DistanceMatrix do
 
   # Returns a function that compute the distance between `node` located at `i`
   # and `j` in the given `permutation`.
-
+  #
+  # Used to populate the `distance_matrix`.
+  #
   @spec distance_producer(route) :: TupleMatrix.producer
 
   defp distance_producer(route) do
@@ -120,19 +121,22 @@ defmodule DistanceMatrix do
     end
   end
 
+  # Returns a function fun/2 that calculate the sum of the distances between
+  # each element taken pairwise.
+  #
+  # Elements has to implement the `Localizable` protocole.
+  #
+  # - First parameter is the `route` (list of `Localizable`).
+  # - Second parameter is a tag to know if the length should be calculated
+  #   considering the route cyclic (:cyclic) or not (:acyclic)
+  #
   @spec length_callback(t) :: length_callback
 
   defp length_callback(matrix) do
-    reducer =
-      fn idx_pred, idx_succ, acc ->
-        acc + (matrix |> TupleMatrix.at(idx_pred, idx_succ))
-      end
-
+    reducer = &(&3 + (matrix |> TupleMatrix.at(&1, &2)))
     fn
-      route, :acyclic ->
-        Permutation.edge_reduce(route, 0, reducer)
-      route, :cyclic ->
-        Permutation.edge_reduce(route, 0, reducer, :cyclic)
+      route, :acyclic -> Permutation.edge_reduce(route, 0, reducer)
+      route, :cyclic  -> Permutation.edge_reduce(route, 0, reducer, :cyclic)
     end
   end
 
