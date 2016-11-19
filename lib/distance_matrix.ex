@@ -8,11 +8,34 @@ defmodule DistanceMatrix do
 
   If there are N elements in the set, this matrix will have size N×N.
 
+
+  The `DistanceMatrix` struct stores a `length_callback` convenient for
+  calculating the length of a given route.
+
+  ## Examples
+
+      iex> route = [
+      ...>    DistanceMatrix.Location.new(1, 2),
+      ...>    DistanceMatrix.Location.new(2, 4),
+      ...>    DistanceMatrix.Location.new(3, 2)
+      ...> ]
+      iex>
+      iex> matrix = DistanceMatrix.new(route)
+      iex>
+      iex> matrix.length_callback.([1, 2, 0], :cyclic)
+      8
+      iex> matrix.length_callback.([1, 2, 0], :acyclic)
+      5
+
   """
 
   alias DistanceMatrix.Localizable
 
-  @type t :: TupleMatrix.t(distance)
+  defstruct [:matrix, :length_callback]
+  @type t :: %__MODULE__{
+                matrix: TupleMatrix.t(distance),
+                length_callback: length_callback
+              }
   @type index :: non_neg_integer
 
   @typedoc """
@@ -25,8 +48,7 @@ defmodule DistanceMatrix do
   """
   @type route :: list(Localizable.t)
 
-  @type distance_callback :: ((index, index) -> distance)
-                          |  (route -> distance)
+  @type length_callback :: ((route, atom) -> distance)
 
   @doc """
   Creates a new `DistanceMatrix`  generating for
@@ -34,22 +56,35 @@ defmodule DistanceMatrix do
 
   ## Examples
 
-      iex> alias DistanceMatrix.Location
+      iex> route = [
+      ...>  DistanceMatrix.Location.new(1, 2),
+      ...>  DistanceMatrix.Location.new(2, 4),
+      ...>  DistanceMatrix.Location.new(3, 2)
+      ...>  ]
       iex>
-      iex> DistanceMatrix.create([Location.new(1, 2), Location.new(2, 4), Location.new(3, 2)])
+      iex> distance_matrix = DistanceMatrix.new(route)
+      iex> distance_matrix.matrix
       %TupleMatrix{tuple: {0, 3, 2, 3, 0, 3, 2, 3, 0}, nb_cols: 3, nb_rows: 3}
-      iex>
-      iex> DistanceMatrix.create([])
+
+
+
+      iex> distance_matrix = DistanceMatrix.new([])
+      iex> distance_matrix.matrix
       %TupleMatrix{tuple: {}, nb_cols: 0, nb_rows: 0}
 
   """
-  @spec create(route) :: t
+  @spec new(route) :: t
 
-  def create(route) do
+  def new(route) do
     route = List.to_tuple(route)
     size = tuple_size(route)
     producer = distance_producer(route)
-    TupleMatrix.new(size, size, producer)
+    matrix = TupleMatrix.new(size, size, producer)
+
+    %__MODULE__{
+      matrix: matrix,
+      length_callback: length_callback(matrix)
+    }
   end
 
   @doc """
@@ -59,12 +94,12 @@ defmodule DistanceMatrix do
 
       iex> alias DistanceMatrix.Location
       iex> route = [Location.new(1, 2), Location.new(2, 4), Location.new(3, 2)]
-      iex> d_m = DistanceMatrix.create(route)
+      iex> d_m = DistanceMatrix.new(route)
       iex> d_m |> DistanceMatrix.get(1, 2)
       3
 
   """
-  defdelegate get(distances_matrix, row, col), to: TupleMatrix, as: :at
+  def get(%{matrix: matrix}, row, col), do: TupleMatrix.at(matrix, row, col)
 
 
   # Returns a function that compute the distance between `node` located at `i`
@@ -85,34 +120,12 @@ defmodule DistanceMatrix do
     end
   end
 
+  @spec length_callback(t) :: length_callback
 
-  @doc """
-  Returns a callable function to get the total distance of a route according
-  to the given `matrix`.
-
-  ## Examples
-
-      iex> route = [
-      ...>    DistanceMatrix.Location.new(1, 2),
-      ...>    DistanceMatrix.Location.new(2, 4),
-      ...>    DistanceMatrix.Location.new(3, 2)
-      ...> ]
-      iex>
-      iex> matrix = DistanceMatrix.create(route)
-      iex>
-      iex> callback = DistanceMatrix.route_lenght_callback(matrix)
-      iex> callback.([1, 2, 0], :cyclic)
-      8
-      iex> callback.([1, 2, 0], :acyclic)
-      5
-
-  """
-  @spec route_lenght_callback(t) :: distance_callback
-
-  def route_lenght_callback(distance_matrix) do
+  defp length_callback(matrix) do
     reducer =
       fn idx_pred, idx_succ, acc ->
-        acc + (distance_matrix |> get(idx_pred, idx_succ))
+        acc + (matrix |> TupleMatrix.at(idx_pred, idx_succ))
       end
 
     fn
