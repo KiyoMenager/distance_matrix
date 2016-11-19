@@ -12,6 +12,9 @@ defmodule DistanceMatrix do
 
   alias DistanceMatrix.Localizable
 
+  @type t :: TupleMatrix.t(distance)
+  @type index :: non_neg_integer
+
   @typedoc """
   The element representing a distance.
   """
@@ -21,7 +24,9 @@ defmodule DistanceMatrix do
   A list of `Localizable` from which the distance matrix is build.
   """
   @type route :: list(Localizable.t)
-  @type t:: TupleMatrix.t(distance)
+
+  @type distance_callback :: ((index, index) -> distance)
+                          |  (route -> distance)
 
   @doc """
   Creates a new `DistanceMatrix`  generating for
@@ -36,6 +41,7 @@ defmodule DistanceMatrix do
       iex>
       iex> DistanceMatrix.create([])
       %TupleMatrix{tuple: {}, nb_cols: 0, nb_rows: 0}
+
   """
   @spec create(route) :: t
 
@@ -56,6 +62,7 @@ defmodule DistanceMatrix do
       iex> d_m = DistanceMatrix.create(route)
       iex> d_m |> DistanceMatrix.get(1, 2)
       3
+
   """
   defdelegate get(distances_matrix, row, col), to: TupleMatrix, as: :at
 
@@ -76,5 +83,36 @@ defmodule DistanceMatrix do
           i_node |> Localizable.distance(j_node)
       end
     end
+  end
+
+
+  @doc """
+  Returns a callable function to get the total distance of a route according
+  to the given `matrix`.
+
+  ## Examples
+
+      iex> route = [
+      ...>    DistanceMatrix.Location.new(1, 2),
+      ...>    DistanceMatrix.Location.new(2, 4),
+      ...>    DistanceMatrix.Location.new(3, 2)
+      ...> ]
+      iex>
+      iex> matrix = DistanceMatrix.create(route)
+      iex>
+      iex> callback = DistanceMatrix.route_lenght_callback(matrix)
+      iex> callback.([0, 1, 2])
+      8
+
+  """
+  @spec route_lenght_callback(t) :: distance_callback
+
+  def route_lenght_callback(distance_matrix) do
+    reducer =
+      fn idx_pred, idx_succ, acc ->
+        acc + (distance_matrix |> get(idx_pred, idx_succ))
+      end
+
+    fn route -> route |> Permutation.edge_reduce(0, reducer) end
   end
 end
